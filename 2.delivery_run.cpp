@@ -348,6 +348,8 @@ int main()
     // --- Load models ---
     Model playerModel(FileSystem::getPath("resources/objects/player/character-male-b.obj"));
     Model wallModel  (FileSystem::getPath("resources/objects/wall/building-a.obj"));
+    Model cakeModel  (FileSystem::getPath("resources/objects/cake/cake.obj"));
+    Model plateModel (FileSystem::getPath("resources/objects/plate/plate.obj"));
 
     // --- Setup procedural geometry ---
     setupGround();
@@ -356,7 +358,7 @@ int main()
     // --- Print instructions ---
     std::cout << "=== DELIVERY RUN ===\n";
     std::cout << "WASD: move player\n";
-    std::cout << "Goal: Pick up 3 packages (BROWN boxes) and deliver to zones (YELLOW markers)\n";
+    std::cout << "Goal: Pick up 3 cakes and deliver them to the plate zones!\n";
     std::cout << "You have 60 seconds!\n\n";
 
     // --- Render loop ---
@@ -403,8 +405,6 @@ int main()
         shader.setVec3("lightColor", glm::vec3(1.0f,  1.0f, 1.0f));
 
         // Camera: fixed isometric-style follow camera
-        // Constant offset above and behind the player (south = -Z side)
-        // This makes controls consistent: W always goes away from camera (+Z), S toward camera (-Z)
         glm::vec3 camPos    = playerPos + glm::vec3(0.0f, 10.0f, -10.0f);
         glm::vec3 camTarget = playerPos + glm::vec3(0.0f,  0.5f,   0.0f);
 
@@ -443,47 +443,55 @@ int main()
             }
         }
 
-        // --- Draw packages ---
+        // --- Draw packages (cake model) ---
+        // To change cake size: edit the glm::scale values below
         for (int i = 0; i < NUM_PACKAGES; i++)
         {
             if (packages[i].collected) continue;
-            // Brown box sitting on the ground (y=0.4 so it sits on ground)
-            drawBox(shader, glm::vec3(packages[i].pos.x, 0.4f, packages[i].pos.z),
-                    glm::vec3(0.8f, 0.8f, 0.8f),
-                    glm::vec3(0.6f, 0.35f, 0.1f)); // brown
+
+            shader.setBool("useColor", false);
+            glm::mat4 mdl = glm::mat4(1.0f);
+            mdl = glm::translate(mdl, glm::vec3(packages[i].pos.x, 0.0f, packages[i].pos.z));
+            mdl = glm::scale(mdl, glm::vec3(2.0f, 2.0f, 2.0f)); // <-- CAKE SIZE (was 1.0)
+            shader.setMat4("model", mdl);
+            cakeModel.Draw(shader);
         }
 
-        // --- Draw delivery zones (flat yellow marker + tall pole) ---
+        // --- Draw delivery zones (plate model + no pole) ---
+        // To change plate size: edit the glm::scale values below
         for (int i = 0; i < NUM_PACKAGES; i++)
         {
             if (zones[i].delivered) continue;
             glm::vec3 zp = zones[i].pos;
-            // Flat marker on ground
-            drawBox(shader, glm::vec3(zp.x, 0.05f, zp.z),
-                    glm::vec3(2.0f, 0.1f, 2.0f),
-                    glm::vec3(1.0f, 0.85f, 0.0f)); // yellow
-            // Tall pole so it's visible from far
-            drawBox(shader, glm::vec3(zp.x, 1.5f, zp.z),
-                    glm::vec3(0.1f, 3.0f, 0.1f),
-                    glm::vec3(1.0f, 0.85f, 0.0f)); // yellow pole
+
+            // Plate model replaces the flat yellow marker — pole removed
+            shader.setBool("useColor", false);
+            glm::mat4 mdl = glm::mat4(1.0f);
+            mdl = glm::translate(mdl, glm::vec3(zp.x, 0.0f, zp.z));
+            mdl = glm::scale(mdl, glm::vec3(2.0f, 2.0f, 2.0f)); // <-- PLATE SIZE (was 1.0)
+            shader.setMat4("model", mdl);
+            plateModel.Draw(shader);
         }
 
-        // --- Draw carried package floating above player ---
+        // --- Draw carried cake floating above player ---
+        // To change carried cake size: edit the glm::vec3 scale argument in drawBox below
         if (carryingPackage) {
-            drawBox(shader,
-                    glm::vec3(playerPos.x, 2.0f, playerPos.z),
-                    glm::vec3(0.6f, 0.6f, 0.6f),
-                    glm::vec3(0.6f, 0.35f, 0.1f));
+            shader.setBool("useColor", false);
+            glm::mat4 mdl = glm::mat4(1.0f);
+            mdl = glm::translate(mdl, glm::vec3(playerPos.x, 2.0f, playerPos.z));
+            mdl = glm::scale(mdl, glm::vec3(2.0f, 2.0f, 2.0f));
+            shader.setMat4("model", mdl);
+            cakeModel.Draw(shader);
         }
 
         // --- Draw player ---
+        // To change player size: edit the glm::scale values below
         shader.setBool("useColor", false);
         {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, playerPos);
             model = glm::rotate(model, glm::radians(playerAngle), glm::vec3(0,1,0));
-            // Scale down — Kenney characters are typically a few units tall
-            model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f));
+            model = glm::scale(model, glm::vec3(2.0f, 2.0f, 2.0f)); // <-- PLAYER SIZE
             shader.setMat4("model", model);
             playerModel.Draw(shader);
         }
@@ -509,8 +517,6 @@ void processInput(GLFWwindow* window)
 
     glm::vec3 move(0.0f);
 
-    // W/S = move along +Z/-Z (into/out of screen from top-down view)
-    // A/D = move along -X/+X (left/right)
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) move.z += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) move.z -= 1.0f;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) move.x += 1.0f;
