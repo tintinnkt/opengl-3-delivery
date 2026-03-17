@@ -6,6 +6,9 @@ A simple 3D top-down delivery game built with OpenGL as a university graphics as
 
 Run around a walled arena, pick up cakes, and drop them off at plate markers — all before the 60-second timer runs out. Three cakes, three plates, one player.
 
+
+https://github.com/user-attachments/assets/bd6a3645-8a2d-4cbb-b51f-e25ab6711c2f
+
 ## Controls
 
 | Key   | Action        |
